@@ -176,5 +176,7 @@ _checpoints.ipynb
 mydb.sqlite
 data/
 train.py
+model.cb
+results
 
 
