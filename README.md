@@ -1,84 +1,160 @@
-## Подготовьте данные
-Создайте файл clean_users_charn.csv с вашими данными
-или измените блок загрузки данных под ваш формат
+# Проект: churn_model_uliana (mle-project-sprint-2-v005)
 
-### Запустите обучение
-python train_model.py
+## Описание
+Проект по работе с моделью предсказания оттока клиентов (**churn classification**).
+Модель обучается, логируется и регистрируется в **MLflow**, который поднимается локально.
+Артефакты модели хранятся в **S3-совместимом хранилище** (например, Yandex Object Storage),
+откуда их можно скачать в локальную папку `saved_model/` для дальнейшей работы.
 
-### MLOps Project: Churn Prediction
+## Структура проекта
+mle-project-sprint-2-v005/
+├── mlflow_local/ # локальный MLflow (sqlite backend + artifacts)
+├── notebooks/
+│ └── test_mlflow_connection.ipynb # проверка подключения к MLflow
+├── saved_model/ # артефакты обученной модели
+│ ├── conda.yaml
+│ ├── input_example.json # пример входных данных (для signature и метрик)
+│ ├── MLmodel
+│ ├── model.skops # обученная модель
+│ ├── python_env.yaml
+│ ├── requirements.txt # зависимости модели
+│ └── serving_input_example.json # пример для inference-сервера MLflow
+├── scripts/
+│ ├── run_mlflow_server_local.sh # запуск MLflow на sqlite + file artifacts
+│ └── run_mlflow_server_postgresql.sh # запуск MLflow на PostgreSQL
+├── src/
+│ ├── load_model.py # загрузка модели из saved_model/
+│ ├── logging_registration_model.py # логирование и регистрация модели в MLflow
+│ └── logging_registration_model_retrain.py # переобучение + логирование + регистрация
+├── .env # AWS-креды и endpoint S3
+├── .gitignore
+├── params.yaml # параметры модели/обучения
+├── python_env.yaml
+├── README.md
+└── requirements.txt
 
-# 📌 О проекте
-Пайплайн машинного обучения для предсказания оттока клиентов. Включает обучение модели логистической регрессии, кросс-валидацию, оценку метрик и логирование результатов в MLflow (с хранением артефактов в S3).
-
-## 📂 Структура
-```text
-├── data/               # Данные (raw и preprocessed)
-├── notebooks/          # Jupyter ноутбуки
-├── results/            # Метрики, предикты, сигнатуры
-├── scripts/            # Вспомогательные скрипты (запуск MLflow)
-├── src/                # Исходный код
-│   ├── train_model_model.py   # Обучение и оценка модели
-│   └── log_to_mlflow.py       # Логирование в MLflow
-├── model.cb            # Обученная модель
-├── params.yaml         # Гиперпараметры и настройки
-├── python_env.yaml     # Окружение для MLflow
-└── requirements.txt    # Зависимости
-```
-
-## ⚙️ Установка
-```bash
+## Установка
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-Создайте `.env` с переменными:
-```env
+Создайте .env с переменными:
 MLFLOW_TRACKING_URI=<URL MLflow-сервера>
 MLFLOW_S3_ENDPOINT_URL=<URL S3>
 AWS_ACCESS_KEY_ID=<ключ>
 AWS_SECRET_ACCESS_KEY=<секрет>
-```
 
-## 🚀 Запуск
 
-**1. Обучение модели:**
+## Запуск MLflow локально
 ```bash
-python src/train_model_model.py
+mlflow server \
+  --backend-store-uri sqlite:///./mlflow_local/mlflow.db \
+  --default-artifact-root file:./mlflow_local/artifacts \
+  --host 127.0.0.1 \
+  --port 5000
 ```
-Загружает данные, проводит CV, обучает модель, сохраняет метрики и сигнатуру в `results/`.
 
-**2. Логирование в MLflow:**
-```bash
-python src/log_to_mlflow.py
-```
-Отправляет параметры, метрики, модель и артефакты на MLflow-сервер, регистрирует модель.
+# Основные сценарии
+1. Скачивание артефактов модели из S3 и загрузка модели
+Скрипт src/load_model.py:
 
-## 🛠 Стек
-Python 3.10+
+читает креды из .env;
 
-Scikit-learn (LogisticRegression, метрики)
+подключается к S3 через boto3 по указанному endpoint_url;
 
-MLflow (трекинг, реестр моделей)
+рекурсивно скачивает все файлы из заданного prefix в saved_model/;
 
-Pandas / NumPy (обработка данных)
+загружает модель через mlflow.sklearn.load_model.
 
-Boto3 (работа с S3)
+2. Логирование и регистрация модели в MLflow
+Скрипт src/logging_registration_model.py:
 
-PyYAML (конфигурация)
+подключается к локальному MLflow (127.0.0.1:5000);
 
-Joblib (сериализация модели)
+загружает модель из saved_model/;
 
-## 📊 MLflow
-Tracking Server: Разворачивается локально или удаленно (скрипт scripts/run_mlflow_server_postgresql.sh).
-Backend Store: PostgreSQL (для метаданных).
-Artifact Store: S3 (для хранения артефактов и моделей).
-- UI: адрес задаётся через `MLFLOW_TRACKING_URI`
-После запуска скриптов откройте MLflow UI (обычно http://127.0.0.1:3000), чтобы просмотреть эксперименты, сравнить метрики и управлять версиями модели.
+строит signature через infer_signature на основе input_example.json;
 
-## 📝 Конфигурация
-Основные настройки проекта вынесены в params.yaml:
-split: параметры разделения данных (target_col, test_size, random_state).
-model.hyperparams: гиперпараметры логистической регрессии (C, max_iter).
-cv: настройки кросс-валидации (n_splits, n_jobs, метрики).
+создаёт (при необходимости) эксперимент churn_uliana;
 
+в рамках run model_0_registry логирует:
+
+метрики по input_example (n_samples_logged, n_positive_pred, positive_rate);
+
+параметры модели (model.get_params());
+
+саму модель с сигнатурой, примером входа, requirements.txt и metadata;
+
+регистрирует модель в Model Registry под именем churn_model_uliana.
+
+3. Переобучение новой версии модели
+Скрипт src/logging_registration_model_retrain.py:
+
+обучает новую версию модели (v2);
+
+считает метрики (ROC-AUC, Precision, Recall, F1, Accuracy);
+
+логирует и регистрирует новую версию в MLflow;
+
+позволяет сравнить v1 и v2 в одном эксперименте.
+
+
+
+
+## 1. Постановка задачи
+
+Требовалось:
+
+1. Обучить новую версию модели `churn_model_uliana` (v2).
+2. Зарегистрировать её в реестре моделей MLflow.
+3. Посчитать метрики: ROC-AUC, Precision, Recall, F1, Accuracy.
+4. Сравнить v1 и v2 между собой.
+
+## 2. Исходные данные и их ограничения
+
+### 2.1. Что было доступно
+
+В артефактах папки `saved_model/` присутствовали:
+
+| Файл | Назначение |
+|------|-----------|
+| `model.skops` | обученная модель v1 (baseline) |
+| `input_example.json` | пример входных данных — 5 строк, 20 признаков |
+| `MLmodel`, `conda.yaml`, `requirements.txt`, `python_env.yaml` | метаданные и окружение |
+| `serving_input_example.json` | пример для сервинга |
+
+### 2.2. Чего не было
+* **`X_train`, `y_train`** — обучающая выборка.
+* **`X_test`, `y_test`** — тестовая выборка.
+
+## 3. Принятый подход
+
+### 3.1. Восстановление структуры данных
+
+Из `input_example.json` извлечена **структура признаков**:
+
+* **20 колонок**, из них:
+  * **3 непрерывные**: `monthly_charges`, `total_charges`, `senior_citizen`
+    (значения стандартизированы — `StandardScaler`);
+  * **17 бинарных**: One-Hot-закодированные категориальные признаки
+    (`type_*`, `payment_method_*`, `internet_service_*`, `online_*`,
+    `device_*`, `tech_support_*`, `streaming_*`, `gender_*`, `partner_*`,
+    `dependents_*`, `multiple_lines_*`, `paperless_billing_*`).
+
+### 3.2. Генерация синтетического датасета
+
+Сгенерировано **2000 строк** с сохранением структуры:
+
+* непрерывные признаки — из `N(0, 1)` (соответствует стандартизированным данным);
+* бинарные признаки — из распределения Бернулли с частотой единиц, взятой
+  из `input_example.json` (с ограничением `[0.05, 0.95]`);
+* целевая переменная `y_synth` — по эвристике на основе линейной комбинации
+  признаков с последующим логистическим преобразованием. Это необходимо,
+  чтобы модель могла чему-то научиться и метрики не были случайными
+  (иначе ROC-AUC ≈ 0.5).
+
+Датасет сохранён:
+saved_model/synthetic/
+├── synthetic_full.csv # 2000 строк
+├── synthetic_train.csv # 1600 строк (80%)
+└── synthetic_test.csv # 400 строк (20%)

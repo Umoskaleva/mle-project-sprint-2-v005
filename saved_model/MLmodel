@@ -1,0 +1,50 @@
+artifact_path: mlflow-artifacts:/27/models/m-745fb6a378424856b9496d3198ebddcc/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.10.12
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.7.2
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.16.1
+model_id: m-745fb6a378424856b9496d3198ebddcc
+model_size_bytes: 18959
+model_uuid: m-745fb6a378424856b9496d3198ebddcc
+prompts: null
+run_id: 70ca4886dd0f4e69ac3ae392fe28c108
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "monthly_charges", "required": true}, {"type":
+    "double", "name": "total_charges", "required": true}, {"type": "double", "name":
+    "senior_citizen", "required": true}, {"type": "double", "name": "type_One year",
+    "required": true}, {"type": "double", "name": "type_Two year", "required": true},
+    {"type": "double", "name": "paperless_billing_Yes", "required": true}, {"type":
+    "double", "name": "payment_method_Credit card (automatic)", "required": true},
+    {"type": "double", "name": "payment_method_Electronic check", "required": true},
+    {"type": "double", "name": "payment_method_Mailed check", "required": true}, {"type":
+    "double", "name": "internet_service_Fiber optic", "required": true}, {"type":
+    "double", "name": "online_security_Yes", "required": true}, {"type": "double",
+    "name": "online_backup_Yes", "required": true}, {"type": "double", "name": "device_protection_Yes",
+    "required": true}, {"type": "double", "name": "tech_support_Yes", "required":
+    true}, {"type": "double", "name": "streaming_tv_Yes", "required": true}, {"type":
+    "double", "name": "streaming_movies_Yes", "required": true}, {"type": "double",
+    "name": "gender_Male", "required": true}, {"type": "double", "name": "partner_Yes",
+    "required": true}, {"type": "double", "name": "dependents_Yes", "required": true},
+    {"type": "double", "name": "multiple_lines_Yes", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-01 08:16:21.326403'
