@@ -7,31 +7,40 @@
 откуда их можно скачать в локальную папку `saved_model/` для дальнейшей работы.
 
 ## Структура проекта
+```text
 mle-project-sprint-2-v005/
-├── mlflow_local/ # локальный MLflow (sqlite backend + artifacts)
+├── mlflow_local/                          # локальный MLflow: SQLite backend и артефакты
+│   ├── mlflow.db
+│   └── artifacts/
+│
 ├── notebooks/
-│ └── test_mlflow_connection.ipynb # проверка подключения к MLflow
-├── saved_model/ # артефакты обученной модели
-│ ├── conda.yaml
-│ ├── input_example.json # пример входных данных (для signature и метрик)
-│ ├── MLmodel
-│ ├── model.skops # обученная модель
-│ ├── python_env.yaml
-│ ├── requirements.txt # зависимости модели
-│ └── serving_input_example.json # пример для inference-сервера MLflow
+│   └── test_mlflow_connection.ipynb       # проверка подключения к MLflow
+│
+├── saved_model/                           # артефакты обученной модели
+│   ├── conda.yaml
+│   ├── input_example.json                 # пример входных данных для signature и метрик
+│   ├── MLmodel
+│   ├── model.skops                        # обученная модель v1
+│   ├── python_env.yaml
+│   ├── requirements.txt                   # зависимости модели
+│   └── serving_input_example.json         # пример запроса для inference-сервера
+│
 ├── scripts/
-│ ├── run_mlflow_server_local.sh # запуск MLflow на sqlite + file artifacts
-│ └── run_mlflow_server_postgresql.sh # запуск MLflow на PostgreSQL
+│   ├── run_mlflow_server_local.sh         # запуск MLflow: SQLite + локальные артефакты
+│   └── run_mlflow_server_postgresql.sh    # запуск MLflow: PostgreSQL + S3
+│
 ├── src/
-│ ├── load_model.py # загрузка модели из saved_model/
-│ ├── logging_registration_model.py # логирование и регистрация модели в MLflow
-│ └── logging_registration_model_retrain.py # переобучение + логирование + регистрация
-├── .env # AWS-креды и endpoint S3
+│   ├── load_model.py                      # скачивание модели из S3 в saved_model/
+│   ├── logging_registration_model.py      # логирование и регистрация baseline-модели
+│   └── logging_registration_model_retrain.py  # переобучение, метрики и новая версия в Registry
+│
+├── .env                                   # S3 endpoint и credentials (не коммитится)
 ├── .gitignore
-├── params.yaml # параметры модели/обучения
+├── params.yaml                            # параметры модели и обучения
 ├── python_env.yaml
 ├── README.md
 └── requirements.txt
+```
 
 ## Установка
 python -m venv .venv
